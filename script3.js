@@ -18,11 +18,58 @@
   const modal = document.getElementById('bookingModal');
   const modalContent = document.getElementById('modalContent');
 
+  // Add smooth scroll behavior for navigation links
+  function initSmoothScroll() {
+    const navLinks = document.querySelectorAll('nav a[href^="#"]');
+    navLinks.forEach(link => {
+      link.addEventListener('click', function(e) {
+        e.preventDefault();
+        const targetId = this.getAttribute('href');
+        const targetSection = document.querySelector(targetId);
+        
+        if (targetSection) {
+          targetSection.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          });
+        }
+      });
+    });
+  }
+
+  // Add scroll animations
+  function initScrollAnimations() {
+    const observerOptions = {
+      threshold: 0.1,
+      rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.style.opacity = '1';
+          entry.target.style.transform = 'translateY(0)';
+        }
+      });
+    }, observerOptions);
+
+    // Observe all cards and sections
+    const animatedElements = document.querySelectorAll('.card, .filter-group, .deal, .about, .deals');
+    animatedElements.forEach(el => {
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(30px)';
+      el.style.transition = 'all 0.6s ease-out';
+      observer.observe(el);
+    });
+  }
+
+  // Enhanced hotel rendering with staggered animation
   function renderHotels(list){
     hotelGrid.innerHTML = '';
-    list.forEach(h=>{
+    list.forEach((h, index) => {
       const el = document.createElement('article');
       el.className = 'card';
+      el.style.animationDelay = `${index * 0.1}s`;
       el.innerHTML = `
         <div class="thumb" style="background-image:url(${h.img})"></div>
         <div class="content">
@@ -36,80 +83,221 @@
         </div>
       `;
       hotelGrid.appendChild(el);
+      
+      // Add staggered animation
+      setTimeout(() => {
+        el.style.opacity = '1';
+        el.style.transform = 'translateY(0)';
+      }, index * 100);
     });
   }
 
   function renderDeals(){
     dealList.innerHTML = '';
-    hotels.slice(0,3).forEach(h=>{
-      const d = document.createElement('div'); d.className='deal';
+    hotels.slice(0,3).forEach((h, index) => {
+      const d = document.createElement('div'); 
+      d.className='deal';
+      d.style.animationDelay = `${index * 0.2}s`;
       d.innerHTML = `<strong>${h.name}</strong><div>${h.city}</div><div class="small">From ₹${h.price}/night</div>`;
       dealList.appendChild(d);
+      
+      // Add staggered animation
+      setTimeout(() => {
+        d.style.opacity = '1';
+        d.style.transform = 'translateY(0)';
+      }, index * 200);
     });
   }
 
-  // search & filter
+  // Enhanced search form with loading state
   const form = document.getElementById('searchForm');
   form.addEventListener('submit', function(e){
     e.preventDefault();
-    const q = document.getElementById('q').value.trim().toLowerCase();
-    const maxPrice = Number(priceRange.value);
-    const guests = document.getElementById('guests').value;
-    const filtered = hotels.filter(h => {
-      const matchesQ = !q || h.name.toLowerCase().includes(q) || h.city.toLowerCase().includes(q);
-      const matchesPrice = h.price <= maxPrice;
-      return matchesQ && matchesPrice;
-    });
-    renderHotels(filtered);
+    
+    // Add loading state
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.innerHTML = '<span class="loading"></span> Searching...';
+    submitBtn.disabled = true;
+    
+    // Simulate loading delay for better UX
+    setTimeout(() => {
+      const formData = new FormData(this);
+      const params = new URLSearchParams(formData);
+      window.location.href = `search-results.html?${params.toString()}`;
+    }, 800);
   });
 
-  // price control
-  priceRange.addEventListener('input', ()=>{priceValue.textContent = priceRange.value});
+  // Enhanced price range with smooth updates
+  priceRange.addEventListener('input', function() {
+    const value = this.value;
+    priceValue.textContent = value;
+    
+    // Add smooth color transition based on value
+    const percentage = (value - this.min) / (this.max - this.min) * 100;
+    this.style.background = `linear-gradient(to right, var(--accent) 0%, var(--accent) ${percentage}%, #e6e9ee ${percentage}%, #e6e9ee 100%)`;
+  });
 
-  // delegate booking clicks
+  // Enhanced star rating interaction
+  document.querySelectorAll('.star').forEach(star => {
+    star.addEventListener('click', function() {
+      // Add click animation
+      this.style.transform = 'scale(0.9)';
+      setTimeout(() => {
+        this.style.transform = 'scale(1)';
+      }, 150);
+      
+      // Update active state
+      document.querySelectorAll('.star').forEach(s => s.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+
+  // Enhanced booking modal with smooth animations
+  function openBooking(id){
+    const hotel = hotels.find(h=>h.id===id);
+    if(!hotel) return;
+    
+    // Add loading state to modal
+    modalContent.innerHTML = `
+      <div style="text-align: center; padding: 2rem;">
+        <div class="loading" style="width: 40px; height: 40px; margin: 0 auto 1rem;"></div>
+        <p>Loading booking form...</p>
+      </div>
+    `;
+    
+    modal.setAttribute('aria-hidden','false');
+
+    // Simulate loading for better UX
+    setTimeout(() => {
+      modalContent.innerHTML = `
+        <h3>Book: ${hotel.name}</h3>
+        <p class="small">${hotel.city} • ${hotel.stars}★</p>
+        <p>${hotel.desc}</p>
+        <form id="bookForm">
+          <label>Full name <input required name="name" /></label>
+          <label>Email <input required name="email" type="email" /></label>
+          <label>Rooms <select name="rooms"><option>1</option><option>2</option></select></label>
+          <div style="display:flex;gap:.6rem;margin-top:.8rem">
+            <button type="submit" class="btn btn-primary">Confirm</button>
+            <button type="button" class="btn btn-ghost modal-close">Cancel</button>
+          </div>
+        </form>
+      `;
+
+      const bf = document.getElementById('bookForm');
+      bf.addEventListener('submit', function(ev){
+        ev.preventDefault();
+        
+        // Add loading state
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalText = submitBtn.textContent;
+        submitBtn.innerHTML = '<span class="loading"></span> Processing...';
+        submitBtn.disabled = true;
+        
+        const formData = new FormData(bf);
+        
+        // Simulate processing delay
+        setTimeout(() => {
+          // Show success message with animation
+          modalContent.innerHTML = `
+            <div style="text-align: center; padding: 2rem;">
+              <div style="font-size: 4rem; margin-bottom: 1rem;">🎉</div>
+              <h3 style="color: var(--accent);">Booking Confirmed!</h3>
+              <p>Thanks, <strong>${formData.get('name')}</strong>!</p>
+              <p>A confirmation has been sent to <strong>${formData.get('email')}</strong></p>
+              <button class="btn btn-primary modal-close" style="margin-top: 1rem;">Close</button>
+            </div>
+          `;
+          
+          setTimeout(closeModal, 3000);
+        }, 1500);
+      });
+    }, 500);
+  }
+
+  function closeModal(){ 
+    modal.setAttribute('aria-hidden','true');
+  }
+
+  // Enhanced event delegation with smooth interactions
   document.body.addEventListener('click', function(e){
     const target = e.target;
     if(target.matches('.btn-primary') && target.dataset.id){
       const id = Number(target.dataset.id);
+      
+      // Add click animation
+      target.style.transform = 'scale(0.95)';
+      setTimeout(() => {
+        target.style.transform = 'scale(1)';
+      }, 150);
+      
       openBooking(id);
     }
     if(target.classList.contains('modal-close')) closeModal();
   });
 
-  function openBooking(id){
-    const hotel = hotels.find(h=>h.id===id);
-    if(!hotel) return;
-    modalContent.innerHTML = `
-      <h3>Book: ${hotel.name}</h3>
-      <p class="small">${hotel.city} • ${hotel.stars}★</p>
-      <p>${hotel.desc}</p>
-      <form id="bookForm">
-        <label>Full name <input required name="name" /></label>
-        <label>Email <input required name="email" type="email" /></label>
-        <label>Rooms <select name="rooms"><option>1</option><option>2</option></select></label>
-        <div style="display:flex;gap:.6rem;margin-top:.8rem"><button type="submit" class="btn btn-primary">Confirm</button><button type="button" class="btn btn-ghost modal-close">Cancel</button></div>
-      </form>
-    `;
-    modal.setAttribute('aria-hidden','false');
-
-    const bf = document.getElementById('bookForm');
-    bf.addEventListener('submit', function(ev){
-      ev.preventDefault();
-      const formData = new FormData(bf);
-      // pretend booking success
-      modalContent.innerHTML = `<h3>Booking confirmed</h3><p>Thanks, ${formData.get('name')}. A confirmation has been sent to ${formData.get('email')}.</p>`;
-      setTimeout(closeModal,2000);
+  // Sign-in button functionality
+  const signinBtn = document.getElementById('signinBtn');
+  if (signinBtn) {
+    signinBtn.addEventListener('click', function() {
+      // Add click animation
+      this.style.transform = 'scale(0.95)';
+      setTimeout(() => {
+        this.style.transform = 'scale(1)';
+        window.location.href = 'signin.html';
+      }, 150);
     });
   }
 
-  function closeModal(){ modal.setAttribute('aria-hidden','true'); }
+  // Enhanced keyboard navigation
+  document.addEventListener('keydown', e => { 
+    if(e.key === 'Escape') closeModal();
+    
+    // Add smooth scrolling with arrow keys
+    if(e.key === 'ArrowDown' || e.key === 'PageDown') {
+      e.preventDefault();
+      window.scrollBy({ top: 100, behavior: 'smooth' });
+    }
+    if(e.key === 'ArrowUp' || e.key === 'PageUp') {
+      e.preventDefault();
+      window.scrollBy({ top: -100, behavior: 'smooth' });
+    }
+  });
 
-  // initial render
-  document.getElementById('year').textContent = new Date().getFullYear();
-  renderHotels(hotels);
-  renderDeals();
+  // Add parallax effect to hero image
+  function initParallax() {
+    window.addEventListener('scroll', () => {
+      const scrolled = window.pageYOffset;
+      const heroImage = document.querySelector('.hero-right img');
+      if (heroImage) {
+        heroImage.style.transform = `translateY(${scrolled * 0.1}px)`;
+      }
+    });
+  }
 
-  // accessibility: close modal with Esc
-  document.addEventListener('keydown', e => { if(e.key === 'Escape') closeModal(); });
+  // Initialize all enhanced features
+  function init() {
+    document.getElementById('year').textContent = new Date().getFullYear();
+    renderHotels(hotels);
+    renderDeals();
+    initSmoothScroll();
+    initScrollAnimations();
+    initParallax();
+    
+    // Add page load animation
+    document.body.style.opacity = '0';
+    setTimeout(() => {
+      document.body.style.transition = 'opacity 0.5s ease-in';
+      document.body.style.opacity = '1';
+    }, 100);
+  }
+
+  // Initialize when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 
 })();
