@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Smart Krishi Sahayak — Crop Advisory</title>
+  <meta name="description" content="A farmer-friendly, mobile-first crop advisory frontend with offline-ready UX, multilingual support, and accessible design." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg: #0f172a;           /* slate-900 */
+      --bg-soft: #111827;      /* gray-900 */
+      --card: #111827;         /* gray-900 */
+      --muted: #cbd5e1;        /* slate-300 */
+      --text: #f8fafc;         /* slate-50 */
+      --accent: #22c55e;       /* green-500 */
+      --accent-2: #16a34a;     /* green-600 */
+      --warning: #f59e0b;      /* amber-500 */
+      --danger: #ef4444;       /* red-500 */
+      --ring: rgba(34,197,94,.4);
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius-2xl: 1.25rem;
+      --radius-xl: 1rem;
+      --radius-lg: .875rem;
+      --radius-md: .625rem;
+      --focus: 0 0 0 3px var(--ring), 0 10px 30px rgba(0,0,0,.25);
+      --font-en: "Inter", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      --font-dev: "Noto Sans Devanagari", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body{
+      margin:0; background: radial-gradient(1000px 600px at 10% -10%, rgba(34,197,94,.15), transparent 60%),
+                             radial-gradient(900px 700px at 100% 0%, rgba(34,197,94,.12), transparent 60%),
+                             linear-gradient(180deg, #0b1222 0%, #0f172a 60%);
+      color: var(--text); font-family: var(--font-en);
+      letter-spacing: 0.2px;
+    }
+
+    /* Accessible motion defaults */
+    @media (prefers-reduced-motion: reduce) {
+      * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+    }
+
+    .app{ max-width: 1100px; margin: 0 auto; padding: 20px; }
+    header{
+      position: sticky; top: 0; z-index: 10; backdrop-filter: blur(8px);
+      background: rgba(15, 23, 42, 0.7);
+      border-bottom: 1px solid rgba(148,163,184,.15);
+    }
+    .nav{ display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; }
+    .brand{ display:flex; align-items:center; gap:12px; }
+    .brand-logo{ width: 40px; height: 40px; border-radius: 14px; background: conic-gradient(from 220deg, #22c55e, #16a34a);
+      box-shadow: inset 0 0 18px rgba(255,255,255,.25), 0 8px 25px rgba(34,197,94,.25);
+      position: relative; isolation: isolate;
+    }
+    .brand-logo::after{ content:""; position:absolute; inset:3px; border-radius: 12px; background: radial-gradient(circle at 30% 25%, rgba(255,255,255,.3), transparent 50%); }
+    .brand h1{ font-size: 1.1rem; line-height: 1.1; margin:0; font-weight: 700; }
+    .brand small{ display:block; color: var(--muted); font-weight: 500; }
+
+    .controls{ display:flex; gap:10px; align-items:center; }
+    .btn, button, input[type="submit"]{
+      --pad: 12px 16px;
+      padding: var(--pad); border: 0; border-radius: 999px; background: #1f2937; color: var(--text);
+      display:flex; align-items:center; gap:8px; font-weight: 600; cursor: pointer;
+      box-shadow: 0 2px 0 rgba(255,255,255,0.06) inset, 0 10px 20px rgba(0,0,0,.25);
+      transition: transform .15s ease, box-shadow .2s ease, background .2s ease;
+    }
+    .btn:hover{ transform: translateY(-1px); box-shadow: var(--shadow); }
+    .btn:focus-visible{ outline: none; box-shadow: var(--focus); }
+    .btn-primary{ background: linear-gradient(180deg, var(--accent), var(--accent-2)); }
+    .btn-ghost{ background: transparent; border: 1px solid rgba(148,163,184,.2); }
+
+    .layout{ display:block; grid-template-columns: 1.2fr 1fr; gap: 18px; margin-top: 38px;margin-bottom: 38px; }
+    @media (max-width: 960px){ .layout{ grid-template-columns: 1fr; } }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+      border: 1px solid rgba(148,163,184,.15); border-radius: var(--radius-2xl);
+      box-shadow: var(--shadow);
+      overflow: clip;
+      margin-top: 38px  ;
+    }
+    .card-header{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding: 16px 16px 10px; }
+    .card-title{ font-weight: 700; margin: 0; font-size: 1.1rem; letter-spacing:.2px; }
+    .card-sub{ color: var(--muted); font-size:.9rem; }
+    .card-body{ padding: 16px; }
+
+    .grid{ display:grid; gap: 12px; }
+    .grid-2{ grid-template-columns: repeat(2, 1fr); }
+    .grid-3{ grid-template-columns: repeat(3, 1fr); }
+    @media (max-width: 720px){ .grid-2, .grid-3{ grid-template-columns: 1fr; } }
+
+    label{ display:block; font-weight: 600; margin-bottom: 6px; }
+    .hint{ color: var(--muted); font-size: .9rem; }
+
+    .field{
+      background: #0b1222; border:1px solid rgba(148,163,184,.18); color: var(--text);
+      border-radius: var(--radius-lg); padding: 12px 12px; width: 100%;
+      transition: box-shadow .2s ease, border-color .2s ease;
+    }
+    .field:focus{ outline: none; border-color: var(--accent); box-shadow: var(--focus); }
+    select.field{ appearance: none; background-image: url('data:image/svg+xml;utf8,<svg fill="%23cbd5e1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M5.25 7.5L10 12.25 14.75 7.5"/></svg>'); background-repeat:no-repeat; background-position: right 10px center; background-size: 18px; padding-right: 36px; }
+
+    .switch{ display:flex; align-items:center; gap: 10px; }
+    .switch input{ appearance: none; width: 48px; height: 28px; background:#1f2937; border-radius: 999px; position:relative; outline:none; border:1px solid rgba(148,163,184,.25); cursor:pointer; transition: background .2s; }
+    .switch input::after{ content:""; position:absolute; top:2px; left:2px; width:24px; height:24px; border-radius: 50%; background: white; transition: transform .25s ease; }
+    .switch input:checked{ background: var(--accent-2); border-color: transparent; }
+    .switch input:checked::after{ transform: translateX(20px); }
+
+    .actions{ display:flex; gap: 10px; flex-wrap:wrap; margin-top: 4px; }
+
+    .result{ min-height: 220px; }
+    .pill{ display:inline-flex; align-items:center; gap:8px; padding: 8px 12px; border-radius: 999px; background: rgba(34,197,94,.12); border: 1px solid rgba(34,197,94,.35); font-weight:600; }
+
+    .badge{ display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius: 999px; border:1px solid rgba(148,163,184,.25); background: rgba(255,255,255,.03); font-size:.85rem; }
+
+    .marquee{ overflow: hidden; white-space: nowrap; mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent); }
+    .marquee > span{ display:inline-block; padding-right: 32px; animation: scroll 18s linear infinite; }
+    @keyframes scroll{ from{ transform: translateX(0); } to{ transform: translateX(-50%); } }
+
+    /* Entry animations */
+    .fade-up{ opacity: 0; transform: translateY(14px); transition: opacity .6s ease, transform .6s ease; }
+    .fade-up.in{ opacity: 1; transform: translateY(0); }
+
+    /* Skeleton */
+    .skeleton{ background: linear-gradient(90deg, rgba(255,255,255,.05), rgba(255,255,255,.12), rgba(255,255,255,.05)); background-size: 300% 100%; animation: shimmer 1.8s linear infinite; }
+    @keyframes shimmer{ 0%{ background-position: 0 0; } 100%{ background-position: -300% 0; } }
+
+    .footer{ color: var(--muted); text-align: center; padding: 16px; font-size: .9rem; }
+
+    /* Readability controls */
+    .reader-controls{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .reader-controls input[type="range"]{ width: 160px; }
+
+    /* Icon buttons */
+    .icon{ width: 18px; height: 18px; display:inline-block; }
+
+    /* Tooltip */
+    .tip{ position: relative; }
+    .tip:hover .tip-box{ opacity:1; transform: translateY(-6px); pointer-events:auto; }
+    .tip-box{ position:absolute; bottom: 100%; left: 50%; transform: translate(-50%, -2px); background:#111827; color:#e5e7eb; border:1px solid rgba(148,163,184,.25); border-radius: .5rem; padding:8px 10px; box-shadow: var(--shadow); white-space: nowrap; font-size:.85rem; opacity:0; pointer-events:none; transition: all .2s ease; }
+
+    /* Simple chart placeholder */
+    .bar{ height: 10px; border-radius: 999px; background: rgba(255,255,255,.08); position: relative; overflow: hidden; }
+    .bar > i{ position:absolute; inset:0; width: 50%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+
+    /* Language support */
+    .dev { font-family: var(--font-dev), var(--font-en); }
+
+  </style>
+</head>
+<body>
+  <header>
+    <nav class="nav app" aria-label="Main">
+      <div class="brand">
+        <div class="brand-logo" aria-hidden="true"></div>
+        <div>
+          <h1>Smart Krishi Sahayak</h1>
+          <small class="dev" id="subtitle">Farmer‑friendly crop advice</small>
+        </div>
+      </div>
+      <div class="controls">
+        <div class="reader-controls">
+          <button class="btn btn-ghost" id="toggle-simple" aria-pressed="false" title="Switch to Simple Mode">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span id="simple-label">Simple</span>
+          </button>
+          <div class="tip">
+            <button class="btn btn-ghost" id="decrease-font" aria-label="Decrease text size">A−</button>
+            <div class="tip-box">Text size</div>
+          </div>
+          <div class="tip">
+            <button class="btn btn-ghost" id="increase-font" aria-label="Increase text size">A+</button>
+            <div class="tip-box">Text size</div>
+          </div>
+        </div>
+        <label class="tip">
+          <select id="lang" class="field" aria-label="Select language">
+            <option value="en">English</option>
+            <option value="hi">हिंदी</option>
+            <option value="mr">मराठी</option>
+          </select>
+          <span class="tip-box">Language</span>
+        </label>
+        <button class="btn btn-primary" id="speak" aria-label="Read advice aloud">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5l6 4v6l-6 4V5z"/><path d="M7 6h1v12H7z"/></svg>
+          <span id="speak-label">Listen</span>
+        </button>
+        <li ><a href="signup.php">Sign Up</a></li>
+        <li><a href="upload_crop.php" class="btn btn-success btn-sm mt-3">Upload Crop Image</a></li>
+
+
+      </div>
+    </nav>
+  </header>
+
+  <main class="app">
+
+    <!-- Safety / info ticker -->
+    <div class="card fade-up" style="--delay:0">
+      <div class="card-body">
+        <div class="marquee" aria-live="polite">
+          <span id="ticker">👩🏾‍🌾 Tip: Check soil moisture before irrigating • ☀️ Use early morning/late evening for spraying • 🛡️ Wear gloves and mask while handling fertilizers • 📱 Keep this page added to home screen for quick access.</span>
+          <span id="ticker-clone" aria-hidden="true"></span>
+        </div>
+      </div>
+    </div>
+
+    <section class="layout">
+      <!-- Input Panel -->
+      <section class="card fade-up" id="input-card">
+        <div class="card-header">
+          <h2 class="card-title dev" id="form-title">Crop & Field Details</h2>
+          <span class="badge" id="status-badge">● Ready</span>
+        </div>
+        <div class="card-body">
+          <form id="advice-form" class="grid grid-2" novalidate>
+
+            <div>
+              <label for="location" class="dev" id="label-location">Village / District</label>
+              <input id="location" name="location" class="field" placeholder="e.g., Wardha" autocomplete="address-level2" required />
+              <div class="hint dev" id="hint-location">We only store this on your device.</div>
+            </div>
+
+            <div>
+              <label for="crop" class="dev" id="label-crop">Crop</label>
+              <select id="crop" name="crop" class="field" required>
+                <option value="rice">Rice</option>
+                <option value="wheat">Wheat</option>
+                <option value="maize">Maize</option>
+                <option value="cotton">Cotton</option>
+                <option value="sugarcane">Sugarcane</option>
+                <option value="pulses">Pulses</option>
+                <option value="millets">Millets</option>
+                <option value="vegetables">Vegetables</option>
+              </select>
+              <div class="hint dev" id="hint-crop">Select main crop.</div>
+            </div>
+
+            <div>
+              <label for="soil" class="dev" id="label-soil">Soil Type</label>
+              <select id="soil" name="soil" class="field" required>
+                <option value="sandy">Sandy</option>
+                <option value="loamy" selected>Loamy</option>
+                <option value="clayey">Clayey</option>
+                <option value="black">Black</option>
+                <option value="red">Red</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="ph" class="dev" id="label-ph">Soil pH: <span id="ph-val" aria-live="polite">7.0</span></label>
+              <input type="range" id="ph" name="ph" class="field" min="4" max="9" step="0.1" value="7" />
+              <div class="hint dev" id="hint-ph">Neutral: ~7. Adjust with lime/gypsum as advised.</div>
+            </div>
+
+            <div>
+              <label for="rain" class="dev" id="label-rain">Rain (last 7 days, mm)</label>
+              <input type="number" id="rain" name="rain" class="field" min="0" max="500" step="1" placeholder="e.g., 35" />
+            </div>
+
+            <div>
+              <label for="sow" class="dev" id="label-sow">Sowing / Transplant Date</label>
+              <input type="date" id="sow" name="sow" class="field" />
+            </div>
+
+            <div class="switch" role="group" aria-label="Irrigation Available">
+              <input type="checkbox" id="irrigation" name="irrigation" />
+              <label for="irrigation" class="dev" id="label-irrigation">Irrigation available</label>
+            </div>
+
+            <div class="switch" role="group" aria-label="Organic Preference">
+              <input type="checkbox" id="organic" name="organic" />
+              <label for="organic" class="dev" id="label-organic">Prefer organic inputs</label>
+            </div>
+
+            <div class="grid grid-3" style="grid-column: 1/-1;">
+              <div>
+                <label for="acre" class="dev" id="label-acre">Area (acre)</label>
+                <input type="number" id="acre" name="acre" class="field" min="0.1" step="0.1" placeholder="1.0" />
+              </div>
+              <div>
+                <label for="budget" class="dev" id="label-budget">Budget (₹/acre)</label>
+                <input type="number" id="budget" name="budget" class="field" min="0" step="100" placeholder="4000" />
+              </div>
+              <div>
+                <label for="risk" class="dev" id="label-risk">Risk tolerance</label>
+                <select id="risk" name="risk" class="field">
+                  <option value="low">Low</option>
+                  <option value="medium" selected>Medium</option>
+                  <option value="high">High</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="actions" style="grid-column: 1/-1;">
+              <button type="submit" class="btn btn-primary" id="get-advice">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l3 3"/></svg>
+                <span class="dev" id="btn-adv-text">Get Advice</span>
+              </button>
+              <button type="button" class="btn btn-ghost" id="reset">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                <span class="dev" id="btn-reset-text">Reset</span>
+              </button>
+              <span class="hint" id="save-hint">Autosaved locally ✓</span>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- Output Panel -->
+      <section class="card fade-up" id="output-card">
+        <div class="card-header">
+          <h2 class="card-title dev" id="result-title">Your Advisory</h2>
+          <div class="badge" id="grade"><strong>Score:</strong> <span id="score">—</span></div>
+          <button class="btn btn-ghost" id="download-pdf" style="margin-top:10px;">
+            📄 Download PDF
+          </button>
+
+        </div>
+        <div class="card-body result" id="result">
+          <div class="skeleton" style="height:140px; border-radius: var(--radius-xl);"></div>
+          <div class="hint" style="margin-top:10px;">Fill details and press “Get Advice”.</div>
+        </div>
+      </section>
+    </section>
+
+    <!-- Quick Actions -->
+    <section class="card fade-up" id="quick">
+      <div class="card-header">
+        <h3 class="card-title dev" id="quick-title">Quick actions</h3>
+        <span class="card-sub" id="quick-sub">One‑tap guides</span>
+      </div>
+      <div class="card-body">
+        <div class="actions">
+          <button class="btn" data-action="sowing">
+            🌱 <span class="dev" id="qa-sowing">Sowing guide</span>
+          </button>
+          <button class="btn" data-action="fert">
+            🧪 <span class="dev" id="qa-fert">Fertilizer plan</span>
+          </button>
+          <button class="btn" data-action="irrig">
+            💧 <span class="dev" id="qa-irrig">Irrigation schedule</span>
+          </button>
+          <button class="btn" data-action="pest">
+            🐛 <span class="dev" id="qa-pest">Common pests</span>
+          </button>
+        </div>
+      </div>
+    </section>
+   
+
+    <p class="footer">Made with ♡ for small & marginal farmers. Works offline after first load. No personal data leaves your device.</p>
+  </main>
+
+  <script>
+    // ===== Multilingual strings (EN, HI, MR) =====
+    const i18n = {
+      en: {
+        subtitle: "Farmer‑friendly crop advice",
+        formTitle: "Crop & Field Details",
+        ready: "● Ready",
+        location: "Village / District",
+        hintLocation: "We only store this on your device.",
+        crop: "Crop",
+        hintCrop: "Select main crop.",
+        soil: "Soil Type",
+        soilph: "Soil pH:",
+        rain: "Rain (last 7 days, mm)",
+        sow: "Sowing / Transplant Date",
+        irrigation: "Irrigation available",
+        organic: "Prefer organic inputs",
+        area: "Area (acre)",
+        budget: "Budget (₹/acre)",
+        risk: "Risk tolerance",
+        getAdvice: "Get Advice",
+        reset: "Reset",
+        autosaved: "Autosaved locally ✓",
+        yourAdvisory: "Your Advisory",
+        score: "Score",
+        fillMsg: "Fill details and press \"Get Advice\".",
+        quick: "Quick actions",
+        quickSub: "One‑tap guides",
+        qa: { sowing: "Sowing guide", fert: "Fertilizer plan", irrig: "Irrigation schedule", pest: "Common pests" },
+        simple: "Simple",
+        listen: "Listen",
+      },
+      hi: {
+        subtitle: "किसान‑अनुकूल फसल सलाह",
+        formTitle: "फसल व खेत विवरण",
+        ready: "● तैयार",
+        location: "गाँव / ज़िला",
+        hintLocation: "यह जानकारी आपके ही फ़ोन में रहती है।",
+        crop: "फसल",
+        hintCrop: "मुख्य फसल चुनें।",
+        soil: "मिट्टी का प्रकार",
+        soilph: "मिट्टी का pH:",
+        rain: "पिछले 7 दिन की वर्षा (मिमी)",
+        sow: "बुवाई / रोपाई की तारीख",
+        irrigation: "सिंचाई उपलब्ध",
+        organic: "जैविक साधन पसंद",
+        area: "क्षेत्र (एकड़)",
+        budget: "बजट (₹/एकड़)",
+        risk: "जोखिम सहनशीलता",
+        getAdvice: "सलाह लें",
+        reset: "रीसेट",
+        autosaved: "लोकल में सुरक्षित ✓",
+        yourAdvisory: "आपकी सलाह",
+        score: "स्कोर",
+        fillMsg: "विवरण भरें और ‘सलाह लें’ दबाएँ।",
+        quick: "त्वरित कार्य",
+        quickSub: "एक‑टैप गाइड",
+        qa: { sowing: "बुवाई मार्गदर्शिका", fert: "उर्वरक योजना", irrig: "सिंचाई समय", pest: "सामान्य कीट" },
+        simple: "सिंपल",
+        listen: "सुनें",
+      },
+      mr: {
+        subtitle: "शेतकऱ्यांसाठी सोपी पिक सल्ला",
+        formTitle: "पीक व शेत तपशील",
+        ready: "● तयार",
+        location: "गाव / जिल्हा",
+        hintLocation: "माहिती फक्त तुमच्या मोबाईलमध्येच राहते.",
+        crop: "पीक",
+        hintCrop: "मुख्य पीक निवडा.",
+        soil: "मातीचा प्रकार",
+        soilph: "मातीचा pH:",
+        rain: "मागील 7 दिवसांचा पाऊस (मिमी)",
+        sow: "पेरणी / रोपण तारीख",
+        irrigation: "सिंचन उपलब्ध",
+        organic: "सेंद्रिय आवड",
+        area: "क्षेत्रफळ (एकर)",
+        budget: "बजेट (₹/एकर)",
+        risk: "धोका सहनशक्ती",
+        getAdvice: "सल्ला घ्या",
+        reset: "रीसेट",
+        autosaved: "स्थानिक पातळीवर सेव्ह ✓",
+        yourAdvisory: "तुमचा सल्ला",
+        score: "स्कोर",
+        fillMsg: "तपशील भरा आणि ‘सल्ला घ्या’ दाबा.",
+        quick: "क्विक अ‍ॅक्शन्स",
+        quickSub: "वन‑टॅप गाईड",
+        qa: { sowing: "पेरणी मार्गदर्शक", fert: "खत योजना", irrig: "सिंचन वेळापत्रक", pest: "सामान्य कीड" },
+        simple: "सिंपल",
+        listen: "ऐका",
+      }
+    };
+
+    const $ = (q)=>document.querySelector(q);
+    const $$ = (q)=>Array.from(document.querySelectorAll(q));
+
+    // ===== Animation on view =====
+    const io = new IntersectionObserver((entries)=>{
+      entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target);} });
+    }, { threshold: .15 });
+    $$('.fade-up').forEach(el=> io.observe(el));
+
+    // ===== Local storage helpers =====
+    const storeKey = 'smart-krishi-form-v1';
+    function saveForm(){
+      const data = Object.fromEntries(new FormData($('#advice-form')).entries());
+      data.irrigation = $('#irrigation').checked;
+      data.organic = $('#organic').checked;
+      localStorage.setItem(storeKey, JSON.stringify(data));
+      $('#save-hint').textContent = t.autosaved;
+    }
+    function loadForm(){
+      const raw = localStorage.getItem(storeKey);
+      if(!raw) return;
+      const data = JSON.parse(raw);
+      for(const k in data){
+        const el = document.getElementById(k);
+        if(!el) continue;
+        if(el.type === 'checkbox') el.checked = !!data[k];
+        else el.value = data[k];
+      }
+      updatePH();
+    }
+
+    // ===== Language =====
+    let t = i18n.en;
+    function setLang(lang){
+      t = i18n[lang] || i18n.en;
+      $('#subtitle').textContent = t.subtitle;
+      $('#form-title').textContent = t.formTitle;
+      $('#status-badge').textContent = t.ready;
+      $('#label-location').textContent = t.location;
+      $('#hint-location').textContent = t.hintLocation;
+      $('#label-crop').textContent = t.crop;
+      $('#hint-crop').textContent = t.hintCrop;
+      $('#label-soil').textContent = t.soil;
+      $('#label-ph').childNodes[0].nodeValue = t.soilph + ' ';
+      $('#label-rain').textContent = t.rain;
+      $('#label-sow').textContent = t.sow;
+      $('#label-irrigation').textContent = t.irrigation;
+      $('#label-organic').textContent = t.organic;
+      $('#label-acre').textContent = t.area;
+      $('#label-budget').textContent = t.budget;
+      $('#label-risk').textContent = t.risk;
+      $('#btn-adv-text').textContent = t.getAdvice;
+      $('#btn-reset-text').textContent = t.reset;
+      $('#result-title').textContent = t.yourAdvisory;
+      $('#grade').querySelector('strong').textContent = t.score + ':';
+      $('#result').querySelector('.hint')?.replaceWith(Object.assign(document.createElement('div'), {className:'hint', textContent: t.fillMsg}));
+      $('#quick-title').textContent = t.quick;
+      $('#quick-sub').textContent = t.quickSub;
+      $$('[data-action="sowing"] span').forEach(el=> el.textContent = t.qa.sowing);
+      $$('[data-action="fert"] span').forEach(el=> el.textContent = t.qa.fert);
+      $$('[data-action="irrig"] span').forEach(el=> el.textContent = t.qa.irrig);
+      $$('[data-action="pest"] span').forEach(el=> el.textContent = t.qa.pest);
+      $('#simple-label').textContent = t.simple;
+      $('#speak-label').textContent = t.listen;
+      $('#save-hint').textContent = t.autosaved;
+      document.documentElement.lang = lang;
+      document.body.classList.toggle('dev', lang !== 'en');
+      localStorage.setItem('lang', lang);
+    }
+
+    // ===== Accessibility controls =====
+    const root = document.documentElement;
+    function changeFont(delta){
+      const cur = parseFloat(getComputedStyle(root).fontSize);
+      const next = Math.max(14, Math.min(22, cur + delta));
+      root.style.fontSize = next + 'px';
+      localStorage.setItem('fontSize', String(next));
+    }
+
+    // ===== pH live label =====
+    function updatePH(){ $('#ph-val').textContent = $('#ph').value; }
+
+    // ===== Simple rule-based advisory engine (frontend) =====
+    function computeAdvice(form){
+      const crop = form.crop.value;
+      const soil = form.soil.value;
+      const ph = parseFloat(form.ph.value || '7');
+      const rain = parseFloat(form.rain.value || '0');
+      const irrigation = $('#irrigation').checked;
+      const organic = $('#organic').checked;
+      const area = parseFloat(form.acre.value || '1');
+      const budget = parseFloat(form.budget.value || '0');
+      const risk = form.risk.value;
+
+      // Score combines suitability factors
+      let score = 70;
+      if(ph < 5.5 || ph > 8.5) score -= 20;
+      if(soil === 'sandy') score -= 5; else if(soil === 'loamy') score += 5;
+      if(rain < 10 && !irrigation) score -= 10;
+      if(organic) score -= 0; // neutral for score, changes plan
+      if(budget < 2000) score -= 5;
+      if(budget > 6000) score += 3;
+      if(risk === 'low') score -= 2; if(risk === 'high') score += 2;
+      score = Math.max(0, Math.min(100, Math.round(score)));
+
+      // Basic fert suggestions by crop (placeholder, domain‑informed defaults)
+      const fert = {
+        rice: {npk: '80‑40‑40', stages: ['Basal: 40‑20‑20', 'Tillering: 20‑10‑10', 'Panicle: 20‑10‑10']},
+        wheat: {npk: '120‑60‑40', stages: ['Basal: 60‑30‑20', 'Crown root: 30‑15‑10', 'Booting: 30‑15‑10']},
+        maize: {npk: '120‑60‑40', stages: ['Basal: 40‑20‑20', 'Knee‑high: 40‑20‑10', 'Pre‑tassel: 40‑20‑10']},
+        cotton:{npk: '75‑40‑40', stages: ['Basal: 25‑10‑10', 'Square: 25‑15‑15', 'Boll: 25‑15‑15']},
+        sugarcane:{npk: '250‑150‑150', stages: ['Planting: 100‑60‑60', 'Tillering: 80‑50‑50', 'Grand growth: 70‑40‑40']},
+        pulses:{npk: '20‑40‑0', stages: ['Basal: 20‑40‑0 (DAP+SSP)']},
+        millets:{npk: '40‑20‑0', stages: ['Basal: 20‑10‑0', '45 DAS: 20‑10‑0']},
+        vegetables:{npk: 'Varies', stages: ['Basal: FYM + starter', 'Vegetative: N focus', 'Flower/Fruit: K focus']},
+      }[crop];
+
+      // pH adjustments
+      let phAdvice = '';
+      if(ph < 6) phAdvice = 'Apply lime (agricultural) ~200‑400 kg/acre based on soil test.';
+      else if(ph > 8) phAdvice = 'Apply gypsum ~200‑300 kg/acre and incorporate organic matter.';
+      else phAdvice = 'pH is near neutral; maintain with FYM/compost.';
+
+      // Irrigation schedule (simple)
+      const irrig = irrigation ? 'Irrigate when top 5 cm soil is dry; typical interval 5‑7 days (cool) / 3‑4 days (hot). Use mulching to reduce loss.'
+                               : 'With no irrigation, conserve moisture via mulching, timely weeding, and avoid top‑dressing before rain.';
+
+      // Rainfall note
+      const rainNote = rain >= 60 ? 'Recent rain is high; watch for fungal disease, ensure drainage.'
+                        : rain >= 20 ? 'Rain is adequate; continue routine field checks.'
+                        : 'Rain is low; prioritize moisture conservation.';
+
+      // Organic alternative
+      const organicPlan = organic ? 'Prefer FYM/compost 1‑2 tons/acre; use neem cake, jeevamrut/vermicompost; bio‑fertilizers (Azospirillum/PSB) as per label.' : null;
+
+      // Expected yield band (illustrative only)
+      const baseYield = { rice: 22, wheat: 18, maize: 20, cotton: 10, sugarcane: 350, pulses: 8, millets: 10, vegetables: 60 }[crop] || 12; // q/acre or t/acre for cane/veg approx
+      const yieldAdj = (score-50)/100 * 0.25; // ±25%
+      const yLow = (baseYield * (1+yieldAdj*0.5)).toFixed(1);
+      const yHigh = (baseYield * (1+yieldAdj)).toFixed(1);
+
+      // Budget view
+      const fertCost = budget ? Math.round(Math.min(budget*0.4, 2500)) : 1500;
+
+      return {
+        score,
+        html: `
+          <div class="grid">
+            <div class="pill">${crop.toUpperCase()} • ${soil} • pH ${ph}</div>
+            <div class="bar" aria-label="Suitability score"><i style="width:${score}%"></i></div>
+
+            <section class="card" style="padding:12px;">
+              <h4 style="margin:0 0 6px 0;">Field Advice</h4>
+              <ul style="margin:0; padding-left:18px; line-height:1.6;">
+                <li>${rainNote}</li>
+                <li>${irrig}</li>
+                <li>${phAdvice}</li>
+              </ul>
+            </section>
+
+            <section class="card" style="padding:12px;">
+              <h4 style="margin:0 0 6px 0;">Fertilizer Plan ${fert?.npk ? `(N‑P‑K: ${fert.npk} kg/acre)` : ''}</h4>
+              <ul style="margin:0; padding-left:18px; line-height:1.6;">
+                ${(fert?.stages||[]).map(s=>`<li>${s}</li>`).join('') || '<li>Follow local crop guide.</li>'}
+                ${organicPlan? `<li>${organicPlan}</li>`:''}
+              </ul>
+            </section>
+
+            <section class="card" style="padding:12px;">
+              <h4 style="margin:0 0 6px 0;">Expected yield</h4>
+              <div>${yLow} – ${yHigh} ${crop==='sugarcane' ? 't/acre' : 'q/acre'} (indicative)</div>
+            </section>
+
+            <section class="card" style="padding:12px;">
+              <h4 style="margin:0 0 6px 0;">Budget planner</h4>
+              <div class="grid grid-3">
+                <div><div class="hint">Fertilizers</div><strong>₹${fertCost}</strong></div>
+                <div><div class="hint">Seeds & nursery</div><strong>₹${Math.round(fertCost*0.4)}</strong></div>
+                <div><div class="hint">Protection</div><strong>₹${Math.round(fertCost*0.35)}</strong></div>
+              </div>
+            </section>
+
+            <section class="card" style="padding:12px;">
+              <h4 style="margin:0 0 6px 0;">Alerts</h4>
+              <ul style="margin:0; padding-left:18px; line-height:1.6;">
+                <li>Spray only in calm weather; read label & PHI.</li>
+                <li>Keep chemicals away from children & feed.</li>
+                <li>Use PPE: gloves, mask, long sleeves.</li>
+              </ul>
+            </section>
+          </div>
+        `
+      }
+    }
+
+    // ===== Voice (speech synthesis) =====
+    function speakText(text){
+      if(!('speechSynthesis' in window)) return alert('Speech not supported on this device');
+      const u = new SpeechSynthesisUtterance(text);
+      const lang = $('#lang').value;
+      u.lang = lang === 'hi' ? 'hi-IN' : lang === 'mr' ? 'mr-IN' : 'en-IN';
+      u.rate = 0.95; u.pitch = 1; u.volume = 1;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(u);
+    }
+
+    // ===== Event wiring =====
+    $('#lang').addEventListener('change', e=> setLang(e.target.value));
+    $('#increase-font').addEventListener('click', ()=> changeFont(+2));
+    $('#decrease-font').addEventListener('click', ()=> changeFont(-2));
+    $('#ph').addEventListener('input', updatePH);
+
+    $('#advice-form').addEventListener('input', saveForm);
+    $('#reset').addEventListener('click', ()=>{ localStorage.removeItem(storeKey); document.getElementById('advice-form').reset(); updatePH(); $('#result').innerHTML = '<div class="skeleton" style="height:140px; border-radius: var(--radius-xl);"></div><div class="hint">'+t.fillMsg+'</div>'; $('#score').textContent = '—'; });
+
+    $('#advice-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const crop = $('#crop').value;
+  const soil = $('#soil').value;
+  
+  const lang = $('#lang').value;
+
+  $('#result').innerHTML = `<div class="skeleton" style="height:140px;"></div>`;
+
+  try {
+    const res = await fetch(`http://localhost/smart-crop-advisory/backend/getAdvisory.php?crop=${encodeURIComponent(crop)}&soil_type=${encodeURIComponent(soil)}&lang=${encodeURIComponent(lang)}`);
+
+    if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
+
+    const data = await res.json();
+
+    if (data.status === "success") {
+      $('#result').innerHTML = `
+        <section class="card" style="padding:12px;">
+          <h4>${t.yourAdvisory}</h4>
+          <p>${data.advice}</p>
+        </section>
+      `;
+    } else {
+      $('#result').innerHTML = `<p style="color:orange;">${data.message}</p>`;
+    }
+  } catch (err) {
+    console.error("Fetch error:", err);
+    $('#result').innerHTML = `<p style="color:red;">Server error. Check console for details.</p>`;
+  }
+});
+
+
+
+    
+    $('#speak').addEventListener('click', ()=>{
+      const text = $('#result').innerText.trim() || 'No advice yet.';
+      speakText(text);
+    });
+
+    // Quick actions populate templated advice snippets
+    // Quick actions fetch dynamic guide from backend
+document.addEventListener("DOMContentLoaded", () => {
+  $$('#quick .btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const action = btn.dataset.action;
+      const crop = $('#crop').value;
+      const lang = $('#lang').value;
+
+      if (!crop) {
+        $('#result').innerHTML = `<p style="color:red;">Please select a crop first.</p>`;
+        return;
+      }
+
+      $('#result').innerHTML = `<div class="skeleton" style="height:100px;"></div>`;
+
+      try {
+        const res = await fetch(`http://localhost/smart-crop-advisory/backend/getQuickGuide.php?action=${encodeURIComponent(action)}&crop=${encodeURIComponent(crop)}&lang=${lang}`);
+        
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        
+        const data = await res.json();
+        
+        if (data.status === "success") {
+          $('#result').innerHTML = `
+            <section class="card" style="padding:12px;">
+              <h4>${btn.textContent.trim()}</h4>
+              <p>${data.guide}</p>
+            </section>
+          `;
+        } else {
+          $('#result').innerHTML = `<p>${data.message}</p>`;
+        }
+      } catch (err) {
+        console.error('Fetch failed:', err);
+        $('#result').innerHTML = `<p style="color:red;">Server error. Check console for details.</p>`;
+      }
+    });
+  });
+});
+
+
+
+    // ===== Init =====
+    (function init(){
+      // restore language
+      const lang = localStorage.getItem('lang') || 'en';
+      $('#lang').value = lang; setLang(lang);
+      // restore font size
+      const fs = parseFloat(localStorage.getItem('fontSize')); if(fs) root.style.fontSize = fs + 'px';
+      loadForm(); updatePH();
+      // duplicate marquee content for seamless scroll
+      $('#ticker-clone').textContent = $('#ticker').textContent;
+    })();
+
+    // ===== Simple Mode =====
+    let simple = false;
+    $('#toggle-simple').addEventListener('click', ()=>{
+      simple = !simple;
+      $('#toggle-simple').setAttribute('aria-pressed', String(simple));
+      document.body.classList.toggle('simple', simple);
+      const hide = ['#budget', '#risk', '#acre'];
+      hide.forEach(id=>{ const wrap = document.getElementById(id).closest('div'); if(simple) wrap.style.display='none'; else wrap.style.display=''; });
+    });
+// ===== PDF Download =====
+    document.getElementById('download-pdf').addEventListener('click', () => {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+  
+      const title = document.getElementById('result-title').textContent;
+      const score = document.getElementById('score').textContent;
+      const content = document.getElementById('result').innerText;
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(16);
+      doc.text(title, 10, 10);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(12);
+      doc.text(`Suitability Score: ${score}`, 10, 20);
+  
+      const splitContent = doc.splitTextToSize(content, 180);
+      doc.text(splitContent, 10, 30);
+  
+      doc.save('crop-advisory.pdf');
+    });
+
+
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.botpress.cloud/webchat/v3.2/inject.js"></script>
+
+<script src="https://files.bpcontent.cloud/2025/09/06/12/20250906123957-LOYH4RJW.js" defer></script>
+
+</body>
+</html>
